@@ -1,0 +1,50 @@
+git-source: &git-source
+  uri: git@github.com:BenjaminGlusa/asp-dotnet-core-sample.git
+  branch: master
+
+
+image-dotnet-core: &image-dotnet-core
+  image_resource:
+    type: docker-image
+    source:
+      repository: mcr.microsoft.com/dotnet/core/sdk
+      tag: 2.2
+      
+resources:
+  - name: source-code
+      type: git
+      source:
+        <<: *git-source
+        
+  - name: cf-production-user
+    type: cf-deploy-credentials
+    source:
+      client_id: ((ci_client_id))
+      client_secret: ((ci_client_secret))
+      token_url: ((ci_token_url))
+      credentials_endpoint: ((ci_credentials_endpoint))
+
+resource_types:
+  - name: cf-deploy-credentials
+    type: docker-image
+    source:
+      repository: vwdilab-docker.jfrog.io/vws-credentials-resource
+      tag: latest
+      
+    
+jobs:
+  - name: build-and-depoly
+    plan:
+      - get: source-code
+        trigger: true
+
+      - task: build
+        config:
+          platform: linux
+          <<: *image-dotnet-core
+          inputs:
+            - name: source-code
+          outputs:
+            - name: out
+          run:
+            path: source-code/ci/build.sh
